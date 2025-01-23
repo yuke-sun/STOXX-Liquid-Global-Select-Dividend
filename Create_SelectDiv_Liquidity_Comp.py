@@ -6,14 +6,20 @@ directory = os.path.dirname(os.path.abspath(__file__))
 Input_loc = directory+"\\Input\\"
 Output_loc = directory+"\\Output\\"
 
+start_date = '2019-03-18'
+end_date = '2024-03-18'
+
 #Input Files
 ADTV = pd.read_csv(Input_loc+"ADTV_EUR.csv", sep =",", parse_dates=["date"])
 Comp_raw = pd.read_csv(Input_loc +"SDGP_SID_Comp_6y.csv", sep =",", parse_dates=["Date"])
+Comp_raw = Comp_raw[Comp_raw['Date']>= '2019-02-28']
 
 Dates_Frame = pd.read_csv(Input_loc +"Dates_Frame_Annual.csv", index_col=0)
 Dates_Frame["Review"] = pd.to_datetime(Dates_Frame["Review"])
 Dates_Frame["Cutoff"] = pd.to_datetime(Dates_Frame["Cutoff"])
+Dates_Frame = Dates_Frame[(Dates_Frame["Review"]>= start_date)&(Dates_Frame["Review"]<= end_date)]
 Comp = Comp_raw.merge(Dates_Frame, left_on="Date", right_on="Review", how="left").drop(columns={"Review"})
+Comp = Comp.dropna(subset=['Cutoff'])
 
 Comp = Comp.merge(ADTV[["value", "stoxx_id", "date"]], left_on=["Cutoff", "Internal_Number"], 
                         right_on=["date", "stoxx_id"], how="left").drop(columns={"stoxx_id", "date","Unnamed: 0"}).rename(columns={"value": "ADTV_3M_EUR"})
@@ -23,7 +29,6 @@ Dates = Comp["Date"].unique()
 
 #Liquidity Screens Selection
 ADTV_Cap = True
-
 
 
 ####################################################
@@ -68,18 +73,6 @@ while "No" in Comp["Liquidity_Test"].unique():
 
 # After the loop completes or condition is no longer met
 print("Alles gut!")
-Comp.to_csv(Output_loc + "Liquidity_Comp_tt.csv")
 
+Comp.to_csv(Output_loc + "Liquidity_Comp.csv")
 
-
-
-
-    # Comp["New_Mcap"] = Comp["Mcap_Units_Index_Currency"].astype("float64")
-    # Comp.loc[Comp["Liquidity_Test"]=="No", 'New_Mcap'] = Comp["ADTV_Cap"]
-    # Comp['New_Index_Mcap_Units'] = Comp.groupby('Date')['New_Mcap'].transform('sum')
-    # Comp["New_Weight"] = Comp["New_Mcap"]/Comp["New_Index_Mcap_Units"]*100
-    # Comp = ADTV_Test("New_Weight")
-    # threshold_condition = Comp['New_Weight'] * 0.01 * nominal_amount < Comp["ADTV_Cap"]
-    # Comp['Liquidity_Test'] = "No"
-    # Comp.loc[threshold_condition, 'Liquidity_Test'] = 'PASS'
-        
